@@ -1,5 +1,8 @@
 {
   "name": "claude-plugin-marketplace",
+  "owner": {
+    "name": "mattyr"
+  },
   "metadata": {
     "description": "A collection of Claude Code plugins",
     "version": "1.0.0",
