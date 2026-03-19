@@ -1,0 +1,118 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Marginalia — inline review comment server
+# Usage: marginalia <file.md>
+
+require 'webrick'
+require 'json'
+require 'fileutils'
+
+file_path = ARGV[0]
+unless file_path
+  $stderr.puts "Usage: marginalia <file.md>"
+  exit 1
+end
+
+file_path = File.expand_path(file_path)
+unless File.exist?(file_path)
+  $stderr.puts "File not found: #{file_path}"
+  exit 1
+end
+
+html_path = File.join(__dir__, 'marginalia.html')
+unless File.exist?(html_path)
+  $stderr.puts "marginalia.html not found in #{__dir__}"
+  exit 1
+end
+
+comments_path = file_path + '.comments'
+File.delete(comments_path) if File.exist?(comments_path)
+prefs_path = File.join(Dir.home, '.config', 'marginalia.json')
+shutdown = false
+
+server = WEBrick::HTTPServer.new(
+  BindAddress: '127.0.0.1',
+  Port: 0,
+  Logger: WEBrick::Log.new('/dev/null'),
+  AccessLog: []
+)
+
+port = server.config[:Port]
+
+# Serve the HTML UI at root
+server.mount_proc '/' do |req, res|
+  if req.path == '/' || req.path == '/index.html'
+    res['Content-Type'] = 'text/html'
+    res.body = File.read(html_path)
+  else
+    res.status = 404
+    res.body = 'Not found'
+  end
+end
+
+# GET /api/file — return file content and name (always fresh, no old comments)
+server.mount_proc '/api/file' do |_req, res|
+  res['Content-Type'] = 'application/json'
+  res.body = JSON.generate({
+    content: File.read(file_path),
+    filename: File.basename(file_path)
+  })
+end
+
+# POST /api/save — write comments to sidecar file (never touches original)
+server.mount_proc '/api/save' do |req, res|
+  data = JSON.parse(req.body)
+  File.write(comments_path, data['comments'])
+  res['Content-Type'] = 'application/json'
+  res.body = '{"ok":true}'
+end
+
+# GET/POST /api/prefs — persist user preferences across sessions
+server.mount_proc '/api/prefs' do |req, res|
+  res['Content-Type'] = 'application/json'
+  if req.request_method == 'GET'
+    if File.exist?(prefs_path)
+      res.body = File.read(prefs_path)
+    else
+      res.body = '{}'
+    end
+  else
+    FileUtils.mkdir_p(File.dirname(prefs_path))
+    File.write(prefs_path, req.body)
+    res.body = '{"ok":true}'
+  end
+end
+
+# POST /api/done — signal shutdown
+server.mount_proc '/api/done' do |_req, res|
+  res['Content-Type'] = 'application/json'
+  res.body = '{"ok":true}'
+  shutdown = true
+  Thread.new { sleep 0.3; server.shutdown }
+end
+
+trap('INT') { server.shutdown }
+trap('TERM') { server.shutdown }
+
+url = "http://127.0.0.1:#{port}"
+$stderr.puts "Marginalia running at #{url}"
+
+# Open browser
+system('open', url)
+
+server.start
+
+# Count comments in the sidecar file
+if File.exist?(comments_path)
+  content = File.read(comments_path)
+  comment_count = content.scan(/^\[\d+\] Line ~\d+:/).length
+  if comment_count > 0
+    puts "#{comment_count} comment#{comment_count != 1 ? 's' : ''} saved to #{comments_path}"
+  else
+    File.delete(comments_path)
+    puts "0 comments"
+  end
+else
+  puts "0 comments"
+end

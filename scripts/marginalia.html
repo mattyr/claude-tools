@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marginalia</title>
+<link rel="stylesheet" id="markdownCss" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown-light.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --toolbar-height: 44px;
+  --status-height: 28px;
+  --panel-width: 280px;
+  --highlight-bg: #fff3b0;
+  --highlight-border: #e6c200;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --danger: #dc2626;
+  --border: #e5e7eb;
+  --bg: #ffffff;
+  --bg-muted: #f9fafb;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Toolbar */
+.toolbar {
+  height: var(--toolbar-height);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  background: var(--bg);
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.toolbar-spacer { flex: 1; }
+
+.toolbar .filename {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.toolbar .comment-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+button {
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover { background: var(--bg-muted); }
+
+button.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+button.primary:hover { background: var(--accent-hover); }
+
+button.done-btn {
+  background: #16a34a;
+  color: white;
+  border-color: #16a34a;
+  font-weight: 600;
+}
+
+button.done-btn:hover { background: #15803d; }
+
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.view-toggle button {
+  border: none;
+  border-radius: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.view-toggle button.active {
+  background: var(--accent);
+  color: white;
+}
+
+/* Main layout */
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr var(--panel-width);
+  overflow: hidden;
+}
+
+.main.no-panel {
+  grid-template-columns: 1fr;
+}
+
+/* Document area */
+.doc-container {
+  overflow-y: auto;
+  padding: 32px 40px;
+  border-right: 1px solid var(--border);
+}
+
+.markdown-body {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.markdown-body mark.comment-highlight {
+  background: var(--highlight-bg);
+  border-bottom: 2px solid var(--highlight-border);
+  padding: 1px 0;
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.markdown-body mark.comment-highlight:hover {
+  background: #ffe566;
+}
+
+.comment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--highlight-border);
+  color: #1a1a1a;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  vertical-align: super;
+  margin-left: 1px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* Raw view */
+.raw-view {
+  display: none;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  border: none;
+  resize: none;
+  outline: none;
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+/* Comments panel */
+.panel {
+  overflow-y: auto;
+  background: var(--bg-muted);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 0;
+}
+
+.comment-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.comment-card:hover {
+  border-color: var(--accent);
+}
+
+.comment-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.comment-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.comment-card-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.comment-card-line {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.comment-card-delete {
+  font-size: 16px;
+  color: var(--text-muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.comment-card-delete:hover { color: var(--danger); background: none; }
+
+.comment-card-quote {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.comment-card-body {
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Empty panel */
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+  gap: 8px;
+}
+
+.panel-empty-icon { font-size: 28px; opacity: 0.4; }
+
+/* Popover */
+.popover {
+  display: none;
+  position: absolute;
+  z-index: 200;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  padding: 12px;
+  width: 300px;
+}
+
+.popover.visible { display: block; }
+
+.popover-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.popover textarea {
+  width: 100%;
+  height: 70px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}
+
+.popover textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+.popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Status bar */
+.statusbar {
+  height: var(--status-height);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  flex-shrink: 0;
+}
+
+/* Empty state */
+.empty-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  text-align: center;
+  gap: 12px;
+  padding: 40px;
+  grid-column: 1 / -1;
+}
+
+.empty-state.visible {
+  display: flex;
+}
+
+.empty-state-icon { font-size: 48px; opacity: 0.3; }
+.empty-state h2 { font-size: 18px; color: var(--text); font-weight: 600; }
+.empty-state p { font-size: 14px; max-width: 400px; }
+
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 40px 60px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(37,99,235,0.04);
+}
+
+/* Theme selector */
+.theme-select {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+/* Dark theme overrides */
+body.theme-dark {
+  --bg: #0d1117;
+  --bg-muted: #161b22;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --border: #30363d;
+  --highlight-bg: #4a3b00;
+  --highlight-border: #9e8200;
+}
+
+body.theme-dark .doc-container {
+  background: var(--bg);
+}
+
+body.theme-dark .raw-view {
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+body.theme-dark .theme-select {
+  background: var(--bg-muted);
+  color: var(--text);
+  border-color: var(--border);
+}
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="toolbar-group standalone-only">
+    <button id="openBtn">Open</button>
+    <button id="saveBtn">Save</button>
+  </div>
+  <div class="toolbar-separator standalone-only"></div>
+  <div class="view-toggle">
+    <button id="renderedBtn" class="active">Rendered</button>
+    <button id="rawBtn">Raw</button>
+  </div>
+  <div class="toolbar-separator"></div>
+  <span class="filename" id="filenameDisplay"></span>
+  <span class="comment-count" id="commentCount" style="display:none"></span>
+  <div class="toolbar-spacer"></div>
+  <select class="theme-select" id="themeSelect">
+    <option value="light">Light</option>
+    <option value="dark">Dark</option>
+  </select>
+  <button class="done-btn cli-only" id="doneBtn">Done</button>
+</div>
+
+<!-- Main content -->
+<div class="main" id="mainArea">
+  <!-- Empty state -->
+  <div class="empty-state" id="emptyState">
+    <div class="empty-state-icon">&#x270D;</div>
+    <h2>Marginalia</h2>
+    <p>Open a markdown file to start adding inline review comments.</p>
+    <div class="drop-zone" id="dropZone">
+      <p>Drop a .md file here or click Open</p>
+    </div>
+  </div>
+
+  <!-- Document -->
+  <div class="doc-container" id="docContainer" style="display:none">
+    <div class="markdown-body" id="renderedView"></div>
+    <textarea class="raw-view" id="rawView" readonly></textarea>
+  </div>
+
+  <!-- Comments panel -->
+  <div class="panel" id="panel" style="display:none">
+    <div class="panel-header">Comments</div>
+    <div id="commentList"></div>
+    <div class="panel-empty" id="panelEmpty">
+      <div class="panel-empty-icon">&#x1f4ad;</div>
+      <div>Select text in the document to add a comment</div>
+    </div>
+  </div>
+</div>
+
+<!-- Comment popover -->
+<div class="popover" id="popover">
+  <div class="popover-label">Comment</div>
+  <textarea id="popoverText" placeholder="Type your comment..."></textarea>
+  <div class="popover-actions">
+    <button id="popoverCancel">Cancel</button>
+    <button id="popoverSubmit" class="primary">Comment</button>
+  </div>
+</div>
+
+<!-- Status bar -->
+<div class="statusbar" id="statusbar">&nbsp;</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ─── State ───────────────────────────────────────────────────
+  let cliMode = false;
+  let rawMarkdown = '';
+  let comments = [];
+  let nextId = 1;
+  let fileHandle = null; // File System Access API
+  let filename = '';
+  let saveTimeout = null;
+  let activeCommentId = null;
+  let pendingSelection = null;
+
+  // ─── DOM refs ────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const toolbar = document.querySelector('.toolbar');
+  const mainArea = $('mainArea');
+  const emptyState = $('emptyState');
+  const docContainer = $('docContainer');
+  const renderedView = $('renderedView');
+  const rawView = $('rawView');
+  const panel = $('panel');
+  const commentList = $('commentList');
+  const panelEmpty = $('panelEmpty');
+  const popover = $('popover');
+  const popoverText = $('popoverText');
+  const filenameDisplay = $('filenameDisplay');
+  const commentCountEl = $('commentCount');
+  const statusbar = $('statusbar');
+  const doneBtn = $('doneBtn');
+  const openBtn = $('openBtn');
+  const saveBtn = $('saveBtn');
+  const renderedBtn = $('renderedBtn');
+  const rawBtn = $('rawBtn');
+  const dropZone = $('dropZone');
+  const themeSelect = $('themeSelect');
+  const markdownCss = $('markdownCss');
+
+  // ─── Theme ────────────────────────────────────────────────────
+  const THEME_CSS = {
+    light: 'https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown-light.min.css',
+    dark: 'https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown-dark.min.css'
+  };
+
+  function applyTheme(theme) {
+    markdownCss.href = THEME_CSS[theme] || THEME_CSS.light;
+    document.body.classList.toggle('theme-dark', theme === 'dark');
+    themeSelect.value = theme;
+  }
+
+  async function loadPrefs() {
+    try {
+      const res = await fetch('/api/prefs');
+      if (res.ok) {
+        const prefs = await res.json();
+        if (prefs.theme) applyTheme(prefs.theme);
+        return;
+      }
+    } catch {}
+    // Standalone fallback: localStorage
+    const saved = localStorage.getItem('marginalia-theme');
+    if (saved) applyTheme(saved);
+  }
+
+  async function savePrefs(prefs) {
+    try {
+      await fetch('/api/prefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prefs)
+      });
+      return;
+    } catch {}
+    localStorage.setItem('marginalia-theme', prefs.theme);
+  }
+
+  themeSelect.addEventListener('change', () => {
+    const theme = themeSelect.value;
+    applyTheme(theme);
+    savePrefs({ theme });
+  });
+
+  // ─── Mode detection ──────────────────────────────────────────
+  async function detectMode() {
+    try {
+      const res = await fetch('/api/file');
+      if (!res.ok) throw new Error('not cli');
+      const data = await res.json();
+      cliMode = true;
+      rawMarkdown = data.content;
+      filename = data.filename;
+      applyMode();
+      loadContent();
+    } catch {
+      cliMode = false;
+      applyMode();
+      showEmpty();
+    }
+  }
+
+  function applyMode() {
+    document.querySelectorAll('.cli-only').forEach(el => {
+      el.style.display = cliMode ? '' : 'none';
+    });
+    document.querySelectorAll('.standalone-only').forEach(el => {
+      el.style.display = cliMode ? 'none' : '';
+    });
+  }
+
+  function showEmpty() {
+    emptyState.classList.add('visible');
+    docContainer.style.display = 'none';
+    panel.style.display = 'none';
+    mainArea.classList.add('no-panel');
+  }
+
+  function showDocument() {
+    emptyState.classList.remove('visible');
+    docContainer.style.display = '';
+    panel.style.display = '';
+    mainArea.classList.remove('no-panel');
+    filenameDisplay.textContent = filename;
+  }
+
+  // ─── Content loading ────────────────────────────────────────
+  function loadContent() {
+    if (!cliMode) parseExistingComments();
+    showDocument();
+    render();
+    updateCommentPanel();
+    updateCommentCount();
+  }
+
+  // ─── Comment parsing (standalone mode only) ────────────────
+  function parseExistingComments() {
+    const startIdx = rawMarkdown.indexOf('<!-- REVIEW COMMENTS');
+    if (startIdx === -1) return;
+    const endIdx = rawMarkdown.indexOf('END REVIEW COMMENTS -->');
+    if (endIdx === -1) return;
+    const block = rawMarkdown.substring(startIdx, endIdx + 'END REVIEW COMMENTS -->'.length);
+    rawMarkdown = rawMarkdown.substring(0, startIdx).trimEnd();
+    const regex = /\[(\d+)\]\s*Line\s*~(\d+):\s*"([^"]+)"\s*\n\s*→\s*(.+?)(?=\n\n\[|\n\nEND REVIEW)/gs;
+    let match;
+    while ((match = regex.exec(block)) !== null) {
+      comments.push({
+        id: nextId++,
+        selectedText: match[3],
+        lineNumber: parseInt(match[2], 10),
+        body: match[4].trim()
+      });
+    }
+  }
+
+  // ─── Markdown rendering ──────────────────────────────────────
+  function render() {
+    marked.setOptions({ breaks: false, gfm: true });
+    renderedView.innerHTML = marked.parse(rawMarkdown);
+    addLineNumbers();
+    applyHighlights();
+  }
+
+  // Post-process: find each block element's text in the raw markdown
+  // and stamp data-md-line with the approximate source line number
+  function addLineNumbers() {
+    const blocks = renderedView.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, pre, blockquote, tr, hr');
+    const lines = rawMarkdown.split('\n');
+
+    for (const el of blocks) {
+      const text = el.textContent.trim().substring(0, 60);
+      if (!text) continue;
+      // Find which source line contains this text
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes(text.substring(0, Math.min(30, text.length)))) {
+          el.setAttribute('data-md-line', i + 1);
+          break;
+        }
+      }
+    }
+  }
+
+  // Find the approximate source line for a given text string
+  function findLineNumber(text) {
+    if (!text) return 0;
+    const needle = text.substring(0, Math.min(40, text.length));
+    const lines = rawMarkdown.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(needle)) return i + 1;
+    }
+    // Try normalized search
+    const normNeedle = needle.replace(/\s+/g, ' ');
+    const fullNorm = rawMarkdown.replace(/\s+/g, ' ');
+    const idx = fullNorm.indexOf(normNeedle);
+    if (idx !== -1) {
+      return rawMarkdown.substring(0, idx).split('\n').length;
+    }
+    return 0;
+  }
+
+  // ─── Highlight engine ───────────────────────────────────────
+  function applyHighlights() {
+    // Clear existing highlights
+    renderedView.querySelectorAll('mark.comment-highlight').forEach(m => {
+      const parent = m.parentNode;
+      while (m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize();
+    });
+
+    for (const comment of comments) {
+      highlightText(comment);
+    }
+  }
+
+  function highlightText(comment) {
+    const needle = comment.selectedText;
+    if (!needle) return;
+
+    const walker = document.createTreeWalker(renderedView, NodeFilter.SHOW_TEXT);
+    let node;
+    let found = false;
+
+    // Try to find the text, possibly spanning multiple text nodes
+    // First pass: find in single text nodes
+    while ((node = walker.nextNode())) {
+      const idx = node.textContent.indexOf(needle);
+      if (idx !== -1) {
+        const range = document.createRange();
+        range.setStart(node, idx);
+        range.setEnd(node, idx + needle.length);
+
+        const mark = document.createElement('mark');
+        mark.className = 'comment-highlight';
+        mark.dataset.commentId = comment.id;
+        range.surroundContents(mark);
+
+        const badge = document.createElement('span');
+        badge.className = 'comment-badge';
+        badge.textContent = getCommentNumber(comment.id);
+        badge.dataset.commentId = comment.id;
+        mark.after(badge);
+
+        found = true;
+        break;
+      }
+    }
+
+    // Second pass: try normalized matching across adjacent text nodes
+    if (!found) {
+      const normalized = needle.replace(/\s+/g, ' ').trim();
+      const walker2 = document.createTreeWalker(renderedView, NodeFilter.SHOW_TEXT);
+      let buf = '';
+      let nodes = [];
+
+      while ((node = walker2.nextNode())) {
+        buf += node.textContent;
+        nodes.push(node);
+
+        const normBuf = buf.replace(/\s+/g, ' ');
+        const matchIdx = normBuf.indexOf(normalized);
+
+        if (matchIdx !== -1) {
+          // Find the actual start/end nodes and offsets
+          let charCount = 0;
+          let startNode = null, startOffset = 0, endNode = null, endOffset = 0;
+          let normCharCount = 0;
+
+          for (const n of nodes) {
+            for (let i = 0; i < n.textContent.length; i++) {
+              const ch = n.textContent[i];
+              const normCh = /\s/.test(ch) ? ' ' : ch;
+              // Skip consecutive whitespace in normalized form
+              if (normCh === ' ' && normCharCount > 0 && normBuf[normCharCount - 1] === ' ') {
+                continue;
+              }
+              if (normCharCount === matchIdx) {
+                startNode = n;
+                startOffset = i;
+              }
+              normCharCount++;
+              if (normCharCount === matchIdx + normalized.length) {
+                endNode = n;
+                endOffset = i + 1;
+                break;
+              }
+            }
+            if (endNode) break;
+          }
+
+          if (startNode && endNode && startNode === endNode) {
+            try {
+              const range = document.createRange();
+              range.setStart(startNode, startOffset);
+              range.setEnd(endNode, endOffset);
+              const mark = document.createElement('mark');
+              mark.className = 'comment-highlight';
+              mark.dataset.commentId = comment.id;
+              range.surroundContents(mark);
+              const badge = document.createElement('span');
+              badge.className = 'comment-badge';
+              badge.textContent = getCommentNumber(comment.id);
+              badge.dataset.commentId = comment.id;
+              mark.after(badge);
+            } catch(e) { /* cross-element range, skip */ }
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  function getCommentNumber(id) {
+    const idx = comments.findIndex(c => c.id === id);
+    return idx === -1 ? '?' : String(idx + 1);
+  }
+
+  // ─── Text selection → comment ───────────────────────────────
+  renderedView.addEventListener('mouseup', function(e) {
+    // Don't interfere with highlight/badge clicks
+    if (e.target.closest('mark.comment-highlight') || e.target.classList.contains('comment-badge')) {
+      return;
+    }
+
+    setTimeout(() => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        hidePopover();
+        return;
+      }
+
+      const text = sel.toString().trim();
+      if (text.length < 2) return;
+
+      const lineNum = findLineNumber(text);
+
+      pendingSelection = { text, lineNumber: lineNum };
+      showPopover(e.clientX, e.clientY);
+    }, 10);
+  });
+
+  function showPopover(x, y) {
+    popoverText.value = '';
+    popover.classList.add('visible');
+
+    // Position near the selection
+    const rect = popover.getBoundingClientRect();
+    let left = x - 150;
+    let top = y + 10;
+
+    // Keep in viewport
+    if (left < 10) left = 10;
+    if (left + 300 > window.innerWidth - 10) left = window.innerWidth - 310;
+    if (top + 200 > window.innerHeight - 10) top = y - 200;
+
+    popover.style.left = left + 'px';
+    popover.style.top = top + 'px';
+
+    popoverText.focus();
+  }
+
+  function hidePopover() {
+    popover.classList.remove('visible');
+    pendingSelection = null;
+  }
+
+  $('popoverCancel').addEventListener('click', hidePopover);
+
+  $('popoverSubmit').addEventListener('click', submitComment);
+
+  popoverText.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      submitComment();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      hidePopover();
+    }
+  });
+
+  function submitComment() {
+    if (!pendingSelection) return;
+    const body = popoverText.value.trim();
+    if (!body) return;
+
+    const comment = {
+      id: nextId++,
+      selectedText: pendingSelection.text,
+      lineNumber: pendingSelection.lineNumber,
+      body: body
+    };
+
+    comments.push(comment);
+    window.getSelection().removeAllRanges();
+    hidePopover();
+    render();
+    updateCommentPanel();
+    updateCommentCount();
+    triggerSave();
+
+    // Scroll to the new comment card
+    setTimeout(() => {
+      const card = commentList.querySelector(`[data-comment-id="${comment.id}"]`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+
+  // ─── Comment panel ──────────────────────────────────────────
+  function updateCommentPanel() {
+    commentList.innerHTML = '';
+
+    if (comments.length === 0) {
+      panelEmpty.style.display = '';
+      return;
+    }
+
+    panelEmpty.style.display = 'none';
+
+    comments.forEach((comment, i) => {
+      const card = document.createElement('div');
+      card.className = 'comment-card';
+      card.dataset.commentId = comment.id;
+
+      const truncatedQuote = comment.selectedText.length > 80
+        ? comment.selectedText.substring(0, 80) + '...'
+        : comment.selectedText;
+
+      card.innerHTML = `
+        <div class="comment-card-header">
+          <span>
+            <span class="comment-card-num">${i + 1}</span>
+            <span class="comment-card-line">~line ${comment.lineNumber}</span>
+          </span>
+          <button class="comment-card-delete" data-id="${comment.id}" title="Delete comment">&times;</button>
+        </div>
+        <div class="comment-card-quote">"${escapeHtml(truncatedQuote)}"</div>
+        <div class="comment-card-body">${escapeHtml(comment.body)}</div>
+      `;
+
+      card.addEventListener('click', (e) => {
+        if (e.target.classList.contains('comment-card-delete')) return;
+        scrollToHighlight(comment.id);
+      });
+
+      card.querySelector('.comment-card-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteComment(comment.id);
+      });
+
+      commentList.appendChild(card);
+    });
+  }
+
+  function deleteComment(id) {
+    comments = comments.filter(c => c.id !== id);
+    render();
+    updateCommentPanel();
+    updateCommentCount();
+    triggerSave();
+  }
+
+  function updateCommentCount() {
+    if (comments.length > 0) {
+      commentCountEl.style.display = '';
+      commentCountEl.textContent = `${comments.length} comment${comments.length !== 1 ? 's' : ''}`;
+    } else {
+      commentCountEl.style.display = 'none';
+    }
+  }
+
+  // ─── Click-to-scroll ───────────────────────────────────────
+  renderedView.addEventListener('click', function(e) {
+    const mark = e.target.closest('mark.comment-highlight');
+    const badge = e.target.classList.contains('comment-badge') ? e.target : null;
+    const target = mark || badge;
+    if (!target) return;
+
+    const id = parseInt(target.dataset.commentId, 10);
+    setActiveComment(id);
+    const card = commentList.querySelector(`[data-comment-id="${id}"]`);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  function scrollToHighlight(id) {
+    setActiveComment(id);
+    const mark = renderedView.querySelector(`mark[data-comment-id="${id}"]`);
+    if (mark) {
+      mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      mark.style.transition = 'background 0.3s';
+      mark.style.background = '#ffe566';
+      setTimeout(() => { mark.style.background = ''; }, 1000);
+    }
+  }
+
+  function setActiveComment(id) {
+    activeCommentId = id;
+    commentList.querySelectorAll('.comment-card').forEach(c => {
+      c.classList.toggle('active', parseInt(c.dataset.commentId, 10) === id);
+    });
+  }
+
+  // ─── Serialization ─────────────────────────────────────────
+  // Serialize just the comments block
+  function serializeComments() {
+    if (comments.length === 0) return '';
+
+    let output = 'REVIEW COMMENTS for ' + filename + '\n';
+    output += 'These comments reference specific passages in the document.\n';
+    output += 'To address a comment, find the quoted text and revise it.\n\n';
+
+    comments.forEach((comment, i) => {
+      output += `[${i + 1}] Line ~${comment.lineNumber}: "${comment.selectedText}"\n`;
+      output += `  \u2192 ${comment.body}\n\n`;
+    });
+
+    output += 'END REVIEW COMMENTS';
+    return output;
+  }
+
+  // Full serialize for standalone mode (embedded in markdown) and raw view
+  function serialize() {
+    let output = rawMarkdown;
+    const commentsStr = serializeComments();
+    if (commentsStr) {
+      output += '\n\n<!-- ' + commentsStr + ' -->';
+    }
+    return output;
+  }
+
+  // ─── View toggle ────────────────────────────────────────────
+  renderedBtn.addEventListener('click', () => {
+    renderedBtn.classList.add('active');
+    rawBtn.classList.remove('active');
+    renderedView.style.display = '';
+    rawView.style.display = 'none';
+  });
+
+  rawBtn.addEventListener('click', () => {
+    rawBtn.classList.add('active');
+    renderedBtn.classList.remove('active');
+    renderedView.style.display = 'none';
+    rawView.style.display = 'block';
+    rawView.value = serialize();
+  });
+
+  // ─── Saving ─────────────────────────────────────────────────
+  function triggerSave() {
+    if (cliMode) {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveToApi, 500);
+    }
+  }
+
+  async function saveToApi() {
+    try {
+      const res = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments: serializeComments() })
+      });
+      if (res.ok) {
+        setStatus('auto-saved \u00b7 just now');
+        startStatusTimer();
+      }
+    } catch (e) {
+      setStatus('save failed');
+    }
+  }
+
+  let statusTimer = null;
+  let lastSaveTime = null;
+
+  function startStatusTimer() {
+    lastSaveTime = Date.now();
+    clearInterval(statusTimer);
+    statusTimer = setInterval(() => {
+      const sec = Math.floor((Date.now() - lastSaveTime) / 1000);
+      if (sec < 5) setStatus('auto-saved \u00b7 just now');
+      else if (sec < 60) setStatus(`auto-saved \u00b7 ${sec}s ago`);
+      else setStatus(`auto-saved \u00b7 ${Math.floor(sec/60)}m ago`);
+    }, 5000);
+  }
+
+  function setStatus(text) {
+    statusbar.textContent = text;
+  }
+
+  // ─── Standalone file I/O ────────────────────────────────────
+  openBtn.addEventListener('click', async () => {
+    if (window.showOpenFilePicker) {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }]
+        });
+        fileHandle = handle;
+        const file = await handle.getFile();
+        filename = file.name;
+        rawMarkdown = await file.text();
+        loadContent();
+      } catch(e) { /* user cancelled */ }
+    } else {
+      // Fallback: input element
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.md,text/markdown';
+      input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+        filename = file.name;
+        rawMarkdown = await file.text();
+        loadContent();
+      };
+      input.click();
+    }
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const content = serialize();
+    if (fileHandle && fileHandle.createWritable) {
+      try {
+        const writable = await fileHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        setStatus('saved');
+      } catch(e) {
+        downloadFallback(content);
+      }
+    } else {
+      downloadFallback(content);
+    }
+  });
+
+  function downloadFallback(content) {
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'document.md';
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus('downloaded');
+  }
+
+  // Cmd+S shortcut
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      if (cliMode) {
+        saveToApi();
+      } else {
+        saveBtn.click();
+      }
+    }
+  });
+
+  // ─── Drag and drop ─────────────────────────────────────────
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+
+  dropZone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    filename = file.name;
+    rawMarkdown = await file.text();
+    loadContent();
+  });
+
+  // Also accept drop on the whole window
+  document.body.addEventListener('dragover', (e) => e.preventDefault());
+  document.body.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    if (docContainer.style.display !== 'none') return; // Already loaded
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    filename = file.name;
+    rawMarkdown = await file.text();
+    loadContent();
+  });
+
+  // ─── Done / Exit ───────────────────────────────────────────
+  doneBtn.addEventListener('click', async () => {
+    // Final save before exiting
+    if (comments.length > 0) {
+      await saveToApi();
+    }
+    try {
+      await fetch('/api/done', { method: 'POST' });
+    } catch(e) { /* server may close before response */ }
+    // Replace page content with a "done" message
+    document.body.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:100vh;
+                  font-family:-apple-system,system-ui,sans-serif;color:#6b7280;
+                  flex-direction:column;gap:8px;">
+        <div style="font-size:24px;opacity:0.4;">&#x2705;</div>
+        <div>Done — you can close this tab.</div>
+      </div>`;
+    // Try to close (works if opened via JS)
+    window.close();
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (cliMode) {
+      navigator.sendBeacon('/api/done');
+    }
+  });
+
+  // ─── Close popover on outside click ────────────────────────
+  document.addEventListener('mousedown', (e) => {
+    if (popover.classList.contains('visible') && !popover.contains(e.target)) {
+      hidePopover();
+    }
+  });
+
+  // ─── Escape key ────────────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      hidePopover();
+    }
+  });
+
+  // ─── Utilities ─────────────────────────────────────────────
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ─── Init ──────────────────────────────────────────────────
+  loadPrefs();
+  detectMode();
+
+})();
+</script>
+</body>
+</html>

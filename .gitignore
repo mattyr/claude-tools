@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Editors
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Ruby
+.ruby-lsp/
+
+# Marginalia runtime
+*.comments
